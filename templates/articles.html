@@ -5,20 +5,20 @@
 {% load censor_filter %}
 
 {% block title %}
-News
+Статьи
 {% endblock title %}
 
 {% block content %}
 <div class="news-container">
     <div class="header">
-        <h1>Новости</h1>
+        <h1>Статьи</h1>
         <div class="date">{% current_time '%b.%d.%Y' %}</div>
     </div>
 
     <div class="actions">
         <a href="{% url 'news_search' %}" class="btn">Поиск</a>
-        <a href="{% url 'news_create' %}" class="btn">Добавить</a>
-        <a href="{% url 'articles_list' %}" class="btn">Статьи</a>
+        <a href="{% url 'article_create' %}" class="btn">Добавить</a>
+        <a href="{% url 'news_list' %}" class="btn">Новости</a>
     </div>
 
     <form method="GET" class="search-form">
@@ -29,9 +29,9 @@ News
         </div>
     </form>
 
-    <div class="count">Найдено: {{ news|length }}</div>
+    <div class="count">Найдено: {{ articles|length }}</div>
 
-    {% if news %}
+    {% if articles %}
         <table class="news-table">
             <thead>
                 <tr>
@@ -43,28 +43,28 @@ News
                 </tr>
             </thead>
             <tbody>
-                {% for post in news %}
+                {% for article in articles %}
                 <tr>
-                    <td><a href="{% url 'post_detail' post.id %}">{{ post.title|censor }}</a></td>
+                    <td><a href="{% url 'post_detail' article.id %}">{{ article.title|censor }}</a></td>
                     <td>
-                        {% for category in post.categories.all %}
+                        {% for category in article.categories.all %}
                             {{ category.name }}{% if not forloop.last %}, {% endif %}
                         {% empty %}
                             -
                         {% endfor %}
                     </td>
-                    <td>{{ post.created_at|date:"d.m.Y" }}</td>
-                    <td>{{ post.rating }}</td>
+                    <td>{{ article.created_at|date:"d.m.Y" }}</td>
+                    <td>{{ article.rating }}</td>
                     <td>
-                        <a href="{% url 'news_update' post.id %}">✏️</a>
-                        <a href="{% url 'news_delete' post.id %}">🗑️</a>
+                        <a href="{% url 'article_update' article.id %}">✏️</a>
+                        <a href="{% url 'article_delete' article.id %}">🗑️</a>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <div class="no-news">Новостей нет</div>
+        <div class="no-news">Статей нет</div>
     {% endif %}
 
     {% if page_obj.has_previous or page_obj.has_next %}

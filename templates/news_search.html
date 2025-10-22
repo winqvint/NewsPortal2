@@ -5,20 +5,14 @@
 {% load censor_filter %}
 
 {% block title %}
-News
+Поиск новостей
 {% endblock title %}
 
 {% block content %}
 <div class="news-container">
     <div class="header">
-        <h1>Новости</h1>
+        <h1>Поиск новостей и статей</h1>
         <div class="date">{% current_time '%b.%d.%Y' %}</div>
-    </div>
-
-    <div class="actions">
-        <a href="{% url 'news_search' %}" class="btn">Поиск</a>
-        <a href="{% url 'news_create' %}" class="btn">Добавить</a>
-        <a href="{% url 'articles_list' %}" class="btn">Статьи</a>
     </div>
 
     <form method="GET" class="search-form">
@@ -29,22 +23,23 @@ News
         </div>
     </form>
 
-    <div class="count">Найдено: {{ news|length }}</div>
-
     {% if news %}
+        <div class="count">Найдено записей: {{ news|length }}</div>
+
         <table class="news-table">
             <thead>
                 <tr>
+                    <th>Тип</th>
                     <th>Заголовок</th>
                     <th>Категория</th>
                     <th>Дата</th>
                     <th>Рейтинг</th>
-                    <th>Действия</th>
                 </tr>
             </thead>
             <tbody>
                 {% for post in news %}
                 <tr>
+                    <td>{{ post.get_post_type_display }}</td>
                     <td><a href="{% url 'post_detail' post.id %}">{{ post.title|censor }}</a></td>
                     <td>
                         {% for category in post.categories.all %}
@@ -55,16 +50,12 @@ News
                     </td>
                     <td>{{ post.created_at|date:"d.m.Y" }}</td>
                     <td>{{ post.rating }}</td>
-                    <td>
-                        <a href="{% url 'news_update' post.id %}">✏️</a>
-                        <a href="{% url 'news_delete' post.id %}">🗑️</a>
-                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <div class="no-news">Новостей нет</div>
+        <div class="no-news">По вашему запросу ничего не найдено</div>
     {% endif %}
 
     {% if page_obj.has_previous or page_obj.has_next %}
@@ -114,25 +105,6 @@ News
     color: #666;
 }
 
-.actions {
-    margin-bottom: 20px;
-}
-
-.btn {
-    display: inline-block;
-    padding: 8px 16px;
-    background: #f0f0f0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    text-decoration: none;
-    color: #333;
-    margin-right: 10px;
-}
-
-.btn:hover {
-    background: #e0e0e0;
-}
-
 .search-form {
     margin-bottom: 20px;
     padding: 15px;
@@ -159,6 +131,22 @@ News
 
 .form-buttons {
     margin-top: 15px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background: #e0e0e0;
 }
 
 .count {
