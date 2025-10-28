@@ -119,7 +119,10 @@ class ArticleUpdate(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     form_class = PostForm
     model = Post
     template_name = 'news_edit.html'
+<<<<<<< HEAD
     permission_required = 'news.change_post'
+=======
+>>>>>>> 231fb46c9c5f4574d44d22e3bb8debb2e6a57929
 
     def get_success_url(self):
         return reverse_lazy('post_detail', kwargs={'pk': self.object.pk})
