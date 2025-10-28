@@ -15,11 +15,16 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from django.contrib import  admin
+from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import TemplateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('pages/', include('django.contrib.flatpages.urls')),
     path('news/', include('news.urls')),
+    path('accounts/', include('allauth.urls')),
+    path('', TemplateView.as_view(template_name='index.html'), name='index'),
+    path('social-login/', TemplateView.as_view(template_name='social_login.html'), name='social_login'),
 ]
+
+handler403 = 'news.views.custom_permission_denied'
