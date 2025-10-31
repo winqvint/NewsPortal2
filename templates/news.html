@@ -16,28 +16,45 @@ News
     </div>
 
     <div class="actions">
-        <a href="{% url 'news_search' %}" class="btn">Поиск</a>
-        <a href="{% url 'news_create' %}" class="btn">Добавить</a>
-        <a href="{% url 'articles_list' %}" class="btn">Статьи</a>
+        <a href="{% url 'news_search' %}" class="btn btn-info">Расширенный поиск</a>
+        {% if perms.news.add_post %}
+            <a href="{% url 'news_create' %}" class="btn btn-success">Добавить новость</a>
+            <a href="{% url 'article_create' %}" class="btn btn-success">Добавить статью</a>
+        {% endif %}
+        <a href="{% url 'articles_list' %}" class="btn btn-primary">Перейти к статьям</a>
     </div>
+
+    {% if user.is_authenticated %}
+        {% if not user.groups.all.0.name == 'authors' %}
+            <div class="author-section">
+                <a href="/news/upgrade/" class="btn btn-info">Стать автором!</a>
+            </div>
+        {% else %}
+            <div class="author-section">
+                <span class="btn btn-success">Вы автор!</span>
+            </div>
+        {% endif %}
+    {% endif %}
 
     <form method="GET" class="search-form">
         {{ filterset.form.as_p }}
         <div class="form-buttons">
-            <button type="submit" class="btn">Найти</button>
-            <a href="?" class="btn">Сбросить</a>
+            <button type="submit" class="btn btn-primary">Найти</button>
+            <a href="?" class="btn btn-secondary">Сбросить</a>
         </div>
     </form>
 
-    <div class="count">Найдено: {{ news|length }}</div>
+    <div class="count">Количество новостей: {{ news|length }}</div>
 
     {% if news %}
         <table class="news-table">
             <thead>
                 <tr>
                     <th>Заголовок</th>
+                    <th>Автор</th>
                     <th>Категория</th>
-                    <th>Дата</th>
+                    <th>Дата публикации</th>
+                    <th>Содержание</th>
                     <th>Рейтинг</th>
                     <th>Действия</th>
                 </tr>
@@ -46,44 +63,71 @@ News
                 {% for post in news %}
                 <tr>
                     <td><a href="{% url 'post_detail' post.id %}">{{ post.title|censor }}</a></td>
+                    <td>{{ post.author.name }}</td>
                     <td>
-                        {% for category in post.categories.all %}
-                            {{ category.name }}{% if not forloop.last %}, {% endif %}
-                        {% empty %}
-                            -
-                        {% endfor %}
+                        <div class="categories-list">
+                            {% for category in post.categories.all %}
+                                <span class="category-tag">
+                                    {{ category.name }}
+                                    {% if user.is_authenticated %}
+                                        {% if user in category.subscribers.all %}
+                                            <a href="{% url 'unsubscribe_category' category.id %}"
+                                                class="subscription-btn unsubscribe"
+                                                title="Отписаться">✕</a>
+                                        {% else %}
+                                            <a href="{% url 'subscribe_category' category.id %}"
+                                                class="subscription-btn subscribe"
+                                                title="Подписаться">+</a>
+                                        {% endif %}
+                                    {% endif %}
+                                </span>
+                            {% empty %}
+                                <span class="no-category">Без категории</span>
+                            {% endfor %}
+                        </div>
                     </td>
                     <td>{{ post.created_at|date:"d.m.Y" }}</td>
+                    <td>{{ post.content|truncatewords:20|censor }}</td>
                     <td>{{ post.rating }}</td>
-                    <td>
-                        <a href="{% url 'news_update' post.id %}">✏️</a>
-                        <a href="{% url 'news_delete' post.id %}">🗑️</a>
+                    <td class="actions-cell">
+                        {% if post.id %}
+                            {% if perms.news.change_post %}
+                                <a href="{% url 'news_update' post.id %}" class="action-link">Редактировать</a>
+                            {% endif %}
+                            {% if perms.news.delete_post %}
+                                <a href="{% url 'news_delete' post.id %}" class="action-link delete">Удалить</a>
+                            {% endif %}
+                        {% else %}
+                            <span class="no-actions">Нет действий</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <div class="no-news">Новостей нет</div>
+        <div class="no-news">
+            <h2>Новостей нет!</h2>
+        </div>
     {% endif %}
 
     {% if page_obj.has_previous or page_obj.has_next %}
     <div class="pagination">
         {% if page_obj.has_previous %}
-            <a href="?{% url_replace page=1 %}">1</a>
+            <a href="?{% url_replace page=1 %}" class="page-link">1</a>
             {% if page_obj.previous_page_number != 1 %}
-                <span>...</span>
-                <a href="?{% url_replace page=page_obj.previous_page_number %}">{{ page_obj.previous_page_number }}</a>
+                <span class="page-dots">...</span>
+                <a href="?{% url_replace page=page_obj.previous_page_number %}" class="page-link">{{ page_obj.previous_page_number }}</a>
             {% endif %}
         {% endif %}
 
-        <span class="current">{{ page_obj.number }}</span>
+        <span class="current-page">{{ page_obj.number }}</span>
 
         {% if page_obj.has_next %}
-            <a href="?{% url_replace page=page_obj.next_page_number %}">{{ page_obj.next_page_number }}</a>
+            <a href="?{% url_replace page=page_obj.next_page_number %}" class="page-link">{{ page_obj.next_page_number }}</a>
             {% if paginator.num_pages != page_obj.next_page_number %}
-                <span>...</span>
-                <a href="?{% url_replace page=page_obj.paginator.num_pages %}">{{ page_obj.paginator.num_pages }}</a>
+                <span class="page-dots">...</span>
+                <a href="?{% url_replace page=page_obj.paginator.num_pages %}" class="page-link">{{ page_obj.paginator.num_pages }}</a>
             {% endif %}
         {% endif %}
     </div>
@@ -94,6 +138,8 @@ News
 .news-container {
     padding: 20px;
     font-family: Arial, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .header {
@@ -108,36 +154,71 @@ News
 .header h1 {
     margin: 0;
     color: #333;
+    font-size: 28px;
 }
 
 .date {
     color: #666;
+    font-size: 14px;
 }
 
 .actions {
     margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .btn {
     display: inline-block;
     padding: 8px 16px;
-    background: #f0f0f0;
-    border: 1px solid #ccc;
+    border: 1px solid;
     border-radius: 4px;
     text-decoration: none;
-    color: #333;
-    margin-right: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-info {
+    background: #17a2b8;
+    color: white;
+    border-color: #17a2b8;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border-color: #6c757d;
 }
 
 .btn:hover {
-    background: #e0e0e0;
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.author-section {
+    margin-bottom: 20px;
 }
 
 .search-form {
     margin-bottom: 20px;
-    padding: 15px;
-    background: #f9f9f9;
+    padding: 20px;
+    background: #f8f9fa;
     border-radius: 4px;
+    border: 1px solid #dee2e6;
 }
 
 .search-form p {
@@ -148,49 +229,62 @@ News
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
+    color: #495057;
 }
 
 .search-form input, .search-form select {
-    padding: 8px;
-    border: 1px solid #ccc;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
     border-radius: 4px;
-    width: 200px;
+    width: 100%;
+    max-width: 300px;
+    font-size: 14px;
 }
 
 .form-buttons {
     margin-top: 15px;
+    display: flex;
+    gap: 10px;
 }
 
 .count {
     margin-bottom: 15px;
-    color: #666;
+    color: #6c757d;
+    font-size: 14px;
+    padding: 10px 0;
 }
 
 .news-table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
+    background: white;
+    border: 1px solid #dee2e6;
 }
 
 .news-table th {
-    background: #f5f5f5;
-    padding: 12px;
+    background: #f8f9fa;
+    padding: 12px 15px;
     text-align: left;
-    border-bottom: 2px solid #ddd;
-    font-weight: bold;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
 }
 
 .news-table td {
-    padding: 12px;
-    border-bottom: 1px solid #ddd;
+    padding: 12px 15px;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 14px;
+    vertical-align: top;
 }
 
 .news-table tr:hover {
-    background: #f9f9f9;
+    background: #f8f9fa;
 }
 
 .news-table a {
-    color: #0066cc;
+    color: #007bff;
     text-decoration: none;
 }
 
@@ -198,35 +292,156 @@ News
     text-decoration: underline;
 }
 
+.categories-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.category-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    background: #e9ecef;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #495057;
+}
+
+.subscription-btn {
+    margin-left: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: all 0.2s ease;
+}
+
+.subscription-btn.subscribe {
+    color: #28a745;
+    border: 1px solid #28a745;
+}
+
+.subscription-btn.unsubscribe {
+    color: #dc3545;
+    border: 1px solid #dc3545;
+}
+
+.subscription-btn:hover {
+    background: #f8f9fa;
+    transform: scale(1.1);
+}
+
+.no-category {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.actions-cell {
+    white-space: nowrap;
+}
+
+.action-link {
+    display: block;
+    margin-bottom: 5px;
+    padding: 4px 8px;
+    background: #f8f9fa;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.action-link.delete {
+    color: #dc3545;
+}
+
+.action-link:hover {
+    background: #e9ecef;
+}
+
+.no-actions {
+    color: #999;
+    font-style: italic;
+    font-size: 12px;
+}
+
 .no-news {
     text-align: center;
-    padding: 40px;
-    color: #666;
-    font-size: 18px;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.no-news h2 {
+    margin: 0;
+    font-size: 24px;
 }
 
 .pagination {
     text-align: center;
-    margin-top: 20px;
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
 }
 
-.pagination a, .pagination span {
+.page-link, .current-page, .page-dots {
     padding: 8px 12px;
-    margin: 0 5px;
-    border: 1px solid #ddd;
+    border: 1px solid #dee2e6;
     border-radius: 4px;
     text-decoration: none;
-    color: #333;
+    color: #007bff;
+    font-size: 14px;
 }
 
-.pagination a:hover {
-    background: #f0f0f0;
+.page-link:hover {
+    background: #e9ecef;
 }
 
-.pagination .current {
-    background: #333;
+.current-page {
+    background: #007bff;
     color: white;
-    border-color: #333;
+    border-color: #007bff;
+}
+
+.page-dots {
+    border: none;
+    color: #6c757d;
+}
+
+@media (max-width: 768px) {
+    .news-container {
+        padding: 10px;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .news-table {
+        font-size: 12px;
+    }
+
+    .news-table th,
+    .news-table td {
+        padding: 8px 10px;
+    }
+
+    .categories-list {
+        flex-direction: column;
+        gap: 3px;
+    }
 }
 </style>
 {% endblock content %}

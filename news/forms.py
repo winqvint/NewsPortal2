@@ -2,16 +2,16 @@ from django import forms
 from django.core.exceptions import ValidationError
 from allauth.account.forms import SignupForm
 from django.contrib.auth.models import Group
-from .models import Post, Category, Author
+from .models import Post, Category, Author, PostCategory
+from django.utils import timezone
+from datetime import timedelta
+
 
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        fields = ['title',
-                  'content',
-                  'author',
-                  'categories',
-        ]
+        fields = ['title', 'content', 'author', 'categories']
+
     author = forms.ModelChoiceField(
         queryset=Author.objects.filter(user__is_staff=False),
         label='Автор',
@@ -49,21 +49,30 @@ class PostForm(forms.ModelForm):
         })
     )
 
-    post_type = forms.ChoiceField(
-        choices=Post.POST_TYPES,
-        label='Тип поста',
-        widget=forms.Select(attrs={
-            'class': 'form-control',
-            'style': 'font-size: 14px;'
-        })
-    )
-
     def clean(self):
         cleaned_data = super().clean()
         content = cleaned_data.get('content')
+        author = cleaned_data.get('author')
+
+        if author and not self.instance.pk:
+            today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            tomorrow_start = today_start + timedelta(days=1)
+
+            posts_today = Post.objects.filter(
+                author=author,
+                created_at__gte=today_start,
+                created_at__lt=tomorrow_start
+            ).count()
+
+            if posts_today >= 3:
+                raise ValidationError(
+                    f'Нельзя публиковать более 3 постов в сутки. '
+                    f'Автор "{author}" уже опубликовал {posts_today} постов сегодня.'
+                )
+
         if content is not None and len(content) < 50:
             raise ValidationError({
-                "description": "Описание не может быть менее 50 символов."
+                "content": "Описание не может быть менее 50 символов."
             })
 
         title = cleaned_data.get('title')
@@ -90,10 +99,30 @@ class PostForm(forms.ModelForm):
             )
         return content
 
+    def save(self, commit=True):
+        post = super().save(commit=False)
+
+        if commit:
+            post.save()
+            # Сохраняем связи с категориями через промежуточную модель
+            self.save_m2m()
+
+            # Явно создаем связи в PostCategory
+            categories = self.cleaned_data['categories']
+            for category in categories:
+                PostCategory.objects.get_or_create(post=post, category=category)
+
+        return post
+
+
 class CommonSignupForm(SignupForm):
     def save(self, request):
         user = super(CommonSignupForm, self).save(request)
         common_group = Group.objects.get(name='common')
         common_group.user_set.add(user)
         return user
+
+
+
+
 

@@ -2,7 +2,8 @@ from django.urls import path, include
 from .views import (
     NewsListView, ArticlesListView, PostSearchView, PostDetail,
     NewsCreate, ArticleCreate, NewsUpdate, ArticleUpdate,
-    NewsDelete, ArticleDelete, upgrade, IndexView
+    NewsDelete, ArticleDelete, upgrade, IndexView, subscribe_to_category,
+    unsubscribe_from_category
 )
 
 urlpatterns = [
@@ -23,4 +24,7 @@ urlpatterns = [
     # Аутентификация и профиль
     path('upgrade/', upgrade, name='upgrade'),
     path('profile/', IndexView.as_view(), name='protect_index'),
+    path('category/<int:category_id>/subscribe/', subscribe_to_category, name='subscribe_category'),
+    path('category/<int:category_id>/unsubscribe/', unsubscribe_from_category, name='unsubscribe_category'),
+
 ]
