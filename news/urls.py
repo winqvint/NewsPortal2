@@ -5,6 +5,7 @@ from .views import (
     NewsDelete, ArticleDelete, upgrade, IndexView, subscribe_to_category,
     unsubscribe_from_category
 )
+from .views import IndexView
 
 urlpatterns = [
     # Новости
@@ -26,5 +27,6 @@ urlpatterns = [
     path('profile/', IndexView.as_view(), name='protect_index'),
     path('category/<int:category_id>/subscribe/', subscribe_to_category, name='subscribe_category'),
     path('category/<int:category_id>/unsubscribe/', unsubscribe_from_category, name='unsubscribe_category'),
+    path('', IndexView.as_view()),
 
 ]
